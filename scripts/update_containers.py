@@ -63,7 +63,7 @@ def get_cache_entry(image, args, tag):
     return f"{cache_path}:{tag}.json"
 
 
-def has_cache_entry(image, args, tag):
+def has_cache_entry(image, args):
     """
     Determine if a cache entry exists for any tag.
     """

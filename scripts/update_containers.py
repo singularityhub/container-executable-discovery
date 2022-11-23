@@ -175,7 +175,7 @@ def main():
     uris = {}
 
     # Use the latest for each unique
-    for image in images:
+    for image in containers:
         if ":" in image:
             image, _ = image.split(":", 1)
 

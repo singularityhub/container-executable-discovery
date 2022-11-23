@@ -55,6 +55,7 @@ runs:
             root=$(pwd)
         fi
         echo "root=${root}" >> $GITHUB_ENV
+      shell: bash
 
     - name: Update Cache
       id: update

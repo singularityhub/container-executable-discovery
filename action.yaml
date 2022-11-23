@@ -42,6 +42,7 @@ runs:
         action_path: ${{ github.action_path }}
       run: |
         pip install git+https://github.com/singularityhub/singularity-hpc@main
+        pip install git+https://github.com/vsoch/pipelib@main
         pip install git+https://github.com/singularityhub/guts@main
         pip install -r ${action_path}/scripts/dev-requirements.txt
       shell: bash

@@ -26,7 +26,7 @@ inputs:
     required: true
     default: false
   dry_run:
-    description: don't open a pull request (dry run only)
+    description: don't push to update branch (dry run only)
     required: false
     default: false
   branch:
@@ -113,9 +113,7 @@ runs:
         BRANCH_AGAINST: ${{ inputs.branch }}
       run: |
         printf "GitHub Actor: ${GITHUB_ACTOR}\n"
-        export BRANCH_FROM="update/cache-$(date '+%Y-%m-%d')"
         git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-        git checkout -b "${BRANCH_FROM}" || git checkout "${BRANCH_FROM}"
         git config --global user.name "github-actions"
         git config --global user.email "github-actions@users.noreply.github.com"
         git config --global pull.rebase true
@@ -125,23 +123,11 @@ runs:
         git add ${root}/skips.json
         git status
         if git diff-index --quiet HEAD --; then
-           export OPEN_PULL_REQUEST=0
            printf "No changes\n"
         else
            export OPEN_PULL_REQUEST=1
            printf "Changes\n"
            git commit -a -m "Automated deployment with updated cache $(date '+%Y-%m-%d')"
-           git push origin "${BRANCH_FROM}"
+           git push origin ${BRANCH_AGAINST}
         fi
-        echo "OPEN_PULL_REQUEST=${OPEN_PULL_REQUEST}" >> $GITHUB_ENV
-        echo "PULL_REQUEST_FROM_BRANCH=${BRANCH_FROM}" >> $GITHUB_ENV
-        echo "PULL_REQUEST_TITLE=[bot] ${BRANCH_FROM}" >> $GITHUB_ENV
-        echo "PULL_REQUEST_BODY=Add new container pull request." >> $GITHUB_ENV
       shell: bash
-      
-    - name: Open Pull Request
-      uses: vsoch/pull-request-action@50f22f6d146226ee6b73b7a001f26a3d4579f360 # 1.0.22
-      if: ${{ env.OPEN_PULL_REQUEST == '1' }}
-      env:
-        GITHUB_TOKEN: ${{ inputs.token }}
-        PULL_REQUEST_BRANCH: ${{ inputs.branch }}

@@ -85,12 +85,12 @@ running the action after having checked out the repository you want to store the
 | org-letter-prefix | set to true to add a letter directory before the organzation name (e.g., docker.io/l/library/ubuntu:latest) | true | false |
 | repo-letter-prefix: set to true to add a letter directory before the repository name (e.g., docker.io/library/u/ubuntu:latest) | true | false |
 | registry-letter-prefix | set to true to add a letter directory before the registry name (e.g., d/docker.io/library/ubuntu:latest) | true | false |
-| dry_run | don't open a pull request (dry run only) | false | false |
-| branch | branch to open pull request against | false | main |
+| dry_run | don't push changes (dry run only) | false | false |
+| branch | branch to push to | false | main |
 
 As an example of namespace, see the [biocontainers.txt](biocontainers.txt) file. We would
 want to define namespace as "quay.io/biocontainers" in the action, as the text file only has
-partial names.
+partial names. For pushing, make sure your repository allows pushes from actions.
 
 
 ### Examples

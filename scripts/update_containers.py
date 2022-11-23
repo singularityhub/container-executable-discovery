@@ -197,6 +197,7 @@ def main():
         print(f"Retrieving tags for {image}")
         tags = requests.get(f"https://crane.ggcr.dev/ls/quay.io/biocontainers/{image}")
         tags = [x for x in tags.text.split("\n") if x]
+        print(tags)
         uris[image] = tags
 
         # If we couldn't get tags, add to skips and continue

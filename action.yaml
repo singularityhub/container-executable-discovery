@@ -47,6 +47,15 @@ runs:
         pip install -r ${action_path}/scripts/dev-requirements.txt
       shell: bash
 
+    - name: Set root
+      env:
+        root: ${{ inputs.root }}
+      run: |
+        if [ "${root}" == "" ]; then
+            root=$(pwd)
+        fi
+        echo "root=${root}" >> $GITHUB_ENV
+
     - name: Update Cache
       id: update
       env:
@@ -55,10 +64,10 @@ runs:
         org_prefix: ${{ inputs.org-letter-prefix }}
         namespace: ${{ inputs.namespace }}
         listing: ${{ inputs.listing }}
-        root: ${{ inputs.root }}
+        root: ${{ env.root }}
         action_path: ${{ github.action_path }}
       run: |
-        cmd="python ${action_path}/scripts/update_containers.py"        
+        cmd="python ${action_path}/scripts/update_containers.py --root ${root}" 
 
         if [ "${repo_prefix}" == "true" ]; then
             cmd="${cmd} --repo-letter-prefix"
@@ -70,9 +79,6 @@ runs:
         if [ "${namespace}" != "" ]; then
             cmd="${cmd} --namespace ${namespace}"
         fi
-        if [ "${root}" != "" ]; then
-            cmd="${cmd} --root ${root}"
-        fi
 
         # Add the listing file
         cmd="${cmd} ${listing}"
@@ -82,21 +88,17 @@ runs:
 
     - name: Calculate frequency
       env:
-        root: ${{ inputs.root }}
+        root: ${{ env.root }}
         action_path: ${{ github.action_path }}
       run: |
-        cmd="python ${action_path}/scripts/calculate_frequency.py"
-        if [ "${root}" != "" ]; then
-            cmd="${cmd} --root ${root}"
-        fi
+        cmd="python ${action_path}/scripts/calculate_frequency.py --root ${root}"
         echo "${cmd}"
         $cmd
-        head ${root}/counts.json
       shell: bash
 
     - name: Preview Cache
       env:
-        root: ${{ inputs.root }}
+        root: ${{ env.root }}
       run: |
         apt-get install -y tree
         tree ${root}
@@ -105,7 +107,7 @@ runs:
     - name: Checkout Update branch
       if: (inputs.dry_run != 'true')
       env:
-        root: ${{ inputs.root }}
+        root: ${{ env.root }}
         GITHUB_TOKEN: ${{ inputs.token }}
         BRANCH_AGAINST: ${{ inputs.branch }}
       run: |
@@ -118,8 +120,8 @@ runs:
         git config --global pull.rebase true
         git add ${root}/* || echo "No files to add"
         git add ${root}/*/* || echo "No nested files to add"
-        git add $(root)/counts.json
-        git add $(root)/skips.json
+        git add ${root}/counts.json
+        git add ${root}/skips.json
         git status
         if git diff-index --quiet HEAD --; then
            export OPEN_PULL_REQUEST=0

@@ -203,7 +203,7 @@ def main():
 
         # If we couldn't get tags, add to skips and continue
         if "UNAUTHORIZED" in tags[0]:
-            print(f'Skipping {image}, UNAUTHORIZED in tag.')
+            print(f"Skipping {image}, UNAUTHORIZED in tag.")
             skips.add(image)
             continue
 
@@ -211,12 +211,12 @@ def main():
         try:
             ordered = p.run(list(tags), unwrap=False)
         except Exception as e:
-            print(f'Ordering of tag failed: {e}')
+            print(f"Ordering of tag failed: {e}")
             continue
 
         # If we aren't able to order versions.
         if not ordered:
-            print(f'No ordered tags for {image}, skipping.')
+            print(f"No ordered tags for {image}, skipping.")
             skips.add(image)
             continue
 

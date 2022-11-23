@@ -81,8 +81,8 @@ def main():
 
     # Allow developer to provide tags in root
     for filename in recursive_find(os.path.join(root), ".json"):
-        # json files at the root are not valid        
-        if os.path.basename(filename) in ['skips.json', 'counts.json']:
+        # json files at the root are not valid
+        if os.path.basename(filename) in ["skips.json", "counts.json"]:
             print(f"Skipping {filename}")
             continue
         aliases = read_json(filename)
@@ -93,7 +93,7 @@ def main():
 
     counts = collections.OrderedDict(sorted(counts.items()))
     counts_file = os.path.join(root, "counts.json")
-    print(f'Writing counts to {counts_file}')
+    print(f"Writing counts to {counts_file}")
     write_json(counts, counts_file)
 
 

@@ -1,0 +1,157 @@
+name: "container cache generator"
+description: "Generate a cache of container executable paths for a listing of containers."
+inputs:
+  token:
+    description: GitHub token (required for pull request)
+    required: false
+  root:
+    description: Path of the cache roots (defaults to PWD)
+    required: false
+  listing:
+    description: text file with listing of containers, one per line.
+    required: true
+  namespace:
+    description: namespace to add to each container in the listing (optional)
+    required: false
+  org-letter-prefix:
+    description: set to true to add a letter directory before the organzation name (e.g., docker.io/l/library/ubuntu:latest)
+    required: true
+    default: false
+  repo-letter-prefix:
+    description: set to true to add a letter directory before the repository name (e.g., docker.io/library/u/ubuntu:latest)
+    required: true
+    default: false
+  registry-letter-prefix:
+    description: set to true to add a letter directory before the registry name (e.g., d/docker.io/library/ubuntu:latest)
+    required: true
+    default: false
+  dry_run:
+    description: don't open a pull request (dry run only)
+    required: false
+    default: false
+  branch:
+    description: branch to open pull request against
+    required: false
+    default: main
+
+outputs:
+  version:
+    description: "New version"
+    value: ${{ steps.check.outputs.version }}
+  package:
+    description: "Package with version (to install or test build)"
+    value: ${{ steps.check.outputs.package }}
+  digest:
+    description: "Digest of new release"
+    value: ${{ steps.check.outputs.digest }}
+
+        branch: ${{ inputs.branch }}
+
+runs:
+  using: "composite"
+  steps:
+
+    - name: Install shpc and Guts
+      env:
+        action_path: ${{ github.action_path }}
+      run: |
+        pip install git+https://github.com/singularityhub/singularity-hpc@main
+        pip install git+https://github.com/singularityhub/guts@main
+        pip install -r ${action_path}/scripts/dev-requirements.txt
+      shell: bash
+
+    - name: Update Cache
+      id: update
+      env:
+        registry_prefix: ${{ inputs.registry-letter-prefix }}
+        repo_prefix: ${{ inputs.repo-letter-prefix }}
+        org_prefix: ${{ inputs.org-letter-prefix }}
+        namespace: ${{ inputs.namespace }}
+        listing: ${{ inputs.listing }}
+        root: ${{ inputs.root }}
+        action_path: ${{ github.action_path }}
+      run: |
+        cmd="python ${action_path}/scripts/update_containers.py"        
+
+        if [ "${repo_prefix}" == "true" ]; then
+            cmd="${cmd} --repo-letter-prefix"
+        elif [ "${org_prefix}" == "true" ]; then
+            cmd="${cmd} --org-letter-prefix"
+        elif [ "${registry_prefix}" == "true" ]; then
+            cmd="${cmd} --registry-letter-prefix"
+        fi
+        if [ "${namespace}" != "" ]; then
+            cmd="${cmd} --namespace ${namespace}"
+        fi
+        if [ "${root}" != "" ]; then
+            cmd="${cmd} --root ${root}"
+        fi
+
+        # Add the listing file
+        cmd="${cmd} ${listing}"
+        echo "${cmd}"
+        $cmd
+      shell: bash
+
+    - name: Calculate frequency
+      env:
+        root: ${{ inputs.root }}
+        action_path: ${{ github.action_path }}
+      run: |
+        cmd="python ${action_path}/scripts/calculate_frequency.py"
+        if [ "${root}" != "" ]; then
+            cmd="${cmd} --root ${root}"
+        fi
+        echo "${cmd}"
+        $cmd
+        head ${root}/counts.json
+      shell: bash
+
+    - name: Preview Cache
+      env:
+        root: ${{ inputs.root }}
+      run: |
+        apt-get install -y tree
+        tree ${root}
+      shell: bash
+
+    - name: Checkout Update branch
+      if: (inputs.dry_run != 'true')
+      env:
+        root: ${{ inputs.root }}
+        GITHUB_TOKEN: ${{ inputs.token }}
+        BRANCH_AGAINST: ${{ inputs.branch }}
+      run: |
+        printf "GitHub Actor: ${GITHUB_ACTOR}\n"
+        export BRANCH_FROM="update/cache-$(date '+%Y-%m-%d')"
+        git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+        git checkout -b "${BRANCH_FROM}" || git checkout "${BRANCH_FROM}"
+        git config --global user.name "github-actions"
+        git config --global user.email "github-actions@users.noreply.github.com"
+        git config --global pull.rebase true
+        git add ${root}/* || echo "No files to add"
+        git add ${root}/*/* || echo "No nested files to add"
+        git add $(root)/counts.json
+        git add $(root)/skips.json
+        git status
+        if git diff-index --quiet HEAD --; then
+           export OPEN_PULL_REQUEST=0
+           printf "No changes\n"
+        else
+           export OPEN_PULL_REQUEST=1
+           printf "Changes\n"
+           git commit -a -m "Automated deployment with updated cache $(date '+%Y-%m-%d')"
+           git push origin "${BRANCH_FROM}"
+        fi
+        echo "OPEN_PULL_REQUEST=${OPEN_PULL_REQUEST}" >> $GITHUB_ENV
+        echo "PULL_REQUEST_FROM_BRANCH=${BRANCH_FROM}" >> $GITHUB_ENV
+        echo "PULL_REQUEST_TITLE=[bot] ${BRANCH_FROM}" >> $GITHUB_ENV
+        echo "PULL_REQUEST_BODY=Add new container pull request." >> $GITHUB_ENV
+      shell: bash
+      
+    - name: Open Pull Request
+      uses: vsoch/pull-request-action@50f22f6d146226ee6b73b7a001f26a3d4579f360 # 1.0.22
+      if: ${{ env.OPEN_PULL_REQUEST == '1' }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        PULL_REQUEST_BRANCH: ${{ inputs.branch }}

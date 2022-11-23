@@ -190,6 +190,8 @@ def main():
         if ":" in image:
             image, _ = image.split(":", 1)
 
+        print(f"Contender image {image}")
+
         # Don't do repeats
         if has_cache_entry(image, args) or image in uris or image in skips:
             continue

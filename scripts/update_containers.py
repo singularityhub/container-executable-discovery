@@ -7,6 +7,7 @@ import shpc.utils
 import shutil
 import requests
 import glob
+import sys
 from bs4 import BeautifulSoup
 
 import pipelib.steps as step
@@ -42,6 +43,13 @@ def get_parser():
         default=False,
         help="Add a prefix (letter) for the repository name",
     )
+    parser.add_argument(
+        "--no-cleanup",
+        dest="no_cleanup",
+        action="store_true",
+        default=False,
+        help="Don't run cleanup (e.g., if doing local work)",
+    )
     return parser
 
 
@@ -59,15 +67,15 @@ def get_cache_entry(image, args, tag):
     """
     Get a cache entry name for a given tag.
     """
-    cache_path = get_cache_path(image, args)
+    cache_path = get_cache_prefix(image, args)
     return f"{cache_path}:{tag}.json"
 
 
-def has_cache_entry(image, args, tag):
+def has_cache_entry(image, args):
     """
     Determine if a cache entry exists for any tag.
     """
-    cache_path = get_cache_path(image, args)
+    cache_path = get_cache_prefix(image, args)
     return len(glob.glob("%s*.json" % cache_path)) > 0
 
 
@@ -75,7 +83,7 @@ def search_cache_prefix(image, args):
     """
     Determine if a cache entry exists for any tag.
     """
-    cache_path = get_cache_path(image, args)
+    cache_path = get_cache_prefix(image, args)
     return glob.glob("%s*.json" % cache_path)
 
 
@@ -88,7 +96,10 @@ def get_cache_prefix(image, args):
     registry = ""
     repo = ""
 
-    if image.count("/") == 1:
+    # assume docker library namespace
+    if image.count("/") == 0:
+        repo = image
+    elif image.count("/") == 1:
         namespace, repo = image.split("/")
     elif image.count("/") == 2:
         registry, namespace, repo = image.split("/")
@@ -175,32 +186,37 @@ def main():
     uris = {}
 
     # Use the latest for each unique
-    for image in images:
+    for image in containers:
         if ":" in image:
             image, _ = image.split(":", 1)
 
+        print(f"Contender image {image}")
+
         # Don't do repeats
-        if has_cache_entry(image, args) or image in uris or uri in skips:
+        if has_cache_entry(image, args) or image in uris or image in skips:
             continue
 
         print(f"Retrieving tags for {image}")
-        tags = requests.get(f"https://crane.ggcr.dev/ls/quay.io/biocontainers/{image}")
+        tags = requests.get(f"https://crane.ggcr.dev/ls/{image}")
         tags = [x for x in tags.text.split("\n") if x]
         uris[image] = tags
 
         # If we couldn't get tags, add to skips and continue
         if "UNAUTHORIZED" in tags[0]:
+            print(f"Skipping {image}, UNAUTHORIZED in tag.")
             skips.add(image)
             continue
 
         # The updated and transformed items
         try:
             ordered = p.run(list(tags), unwrap=False)
-        except:
+        except Exception as e:
+            print(f"Ordering of tag failed: {e}")
             continue
 
         # If we aren't able to order versions.
         if not ordered:
+            print(f"No ordered tags for {image}, skipping.")
             skips.add(image)
             continue
 
@@ -211,17 +227,27 @@ def main():
             cache_aliases(image, args, tag)
         except:
             skips.add(image)
-            # Stop and remove running containers, then prune
-            os.system("docker stop $(docker ps -a -q)")
-            os.system("docker rm $(docker ps -a -q)")
-            os.system("docker system prune --all --force")
-            for path in glob.glob("/tmp/guts*"):
-                shutil.rmtree(path)
+            if not args.no_cleanup:
+                cleanup()
         # Save as we go
         shpc.utils.write_json(sorted(list(skips)), skips_file)
 
     # Write skips back to file for faster parsing
     shpc.utils.write_json(sorted(list(skips)), skips_file)
+
+
+def cleanup():
+    for cmd in [
+        "docker stop $(docker ps -a -q)",
+        "docker rm $(docker ps -a -q)",
+        "docker system prune --all --force",
+    ]:
+        try:
+            os.system(cmd)
+        except:
+            continue
+    for path in glob.glob("/tmp/guts*"):
+        shutil.rmtree(path)
 
 
 def include_path(path):
@@ -273,6 +299,7 @@ def cache_aliases(image, args, tag):
         return shpc.utils.read_json(matches[0])
 
     # Generate guts if we haven't seen it yet
+    container = f"{image}:{tag}"
     gen = ManifestGenerator()
     manifests = gen.diff(container)
 

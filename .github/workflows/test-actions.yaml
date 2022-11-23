@@ -1,0 +1,68 @@
+name: Test Action
+on:
+  pull_request: []
+
+jobs:
+  default-run:
+    name: Update Cache
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+      - name: Update from Containers
+        uses: ./
+        with:
+          listing: containers.txt
+          dry_run: true
+
+  org-prefix:
+    name: Update Cache (Org Prefix)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+      - name: Update from Containers
+        uses: ./
+        with:
+          org-letter-prefix: true
+          listing: containers.txt
+          dry_run: true
+
+  repo-prefix:
+    name: Update Cache (Repo Prefix)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+      - name: Update from Containers
+        uses: ./
+        with:
+          repo-letter-prefix: true
+          listing: containers.txt
+          dry_run: true
+
+  registry-prefix:
+    name: Update Cache (Registry Prefix)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+      - name: Update from Containers
+        uses: ./
+        with:
+          registry-letter-prefix: true
+          listing: containers.txt
+          dry_run: true
+
+  namespace:
+    name: Update Cache (Namespace)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+      - name: Update from Containers
+        uses: ./
+        with:
+          listing: biocontainers.txt
+          namespace: quay.io/biocontainers
+          dry_run: true

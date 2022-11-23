@@ -34,30 +34,27 @@ inputs:
     required: false
     default: main
 
-outputs:
-  version:
-    description: "New version"
-    value: ${{ steps.check.outputs.version }}
-  package:
-    description: "Package with version (to install or test build)"
-    value: ${{ steps.check.outputs.package }}
-  digest:
-    description: "Digest of new release"
-    value: ${{ steps.check.outputs.digest }}
-
-        branch: ${{ inputs.branch }}
-
 runs:
   using: "composite"
   steps:
-
     - name: Install shpc and Guts
       env:
         action_path: ${{ github.action_path }}
       run: |
         pip install git+https://github.com/singularityhub/singularity-hpc@main
+        pip install git+https://github.com/vsoch/pipelib@main
         pip install git+https://github.com/singularityhub/guts@main
         pip install -r ${action_path}/scripts/dev-requirements.txt
+      shell: bash
+
+    - name: Set root
+      env:
+        root: ${{ inputs.root }}
+      run: |
+        if [ "${root}" == "" ]; then
+            root=$(pwd)
+        fi
+        echo "root=${root}" >> $GITHUB_ENV
       shell: bash
 
     - name: Update Cache
@@ -68,10 +65,10 @@ runs:
         org_prefix: ${{ inputs.org-letter-prefix }}
         namespace: ${{ inputs.namespace }}
         listing: ${{ inputs.listing }}
-        root: ${{ inputs.root }}
+        root: ${{ env.root }}
         action_path: ${{ github.action_path }}
       run: |
-        cmd="python ${action_path}/scripts/update_containers.py"        
+        cmd="python ${action_path}/scripts/update_containers.py --root ${root}" 
 
         if [ "${repo_prefix}" == "true" ]; then
             cmd="${cmd} --repo-letter-prefix"
@@ -83,9 +80,6 @@ runs:
         if [ "${namespace}" != "" ]; then
             cmd="${cmd} --namespace ${namespace}"
         fi
-        if [ "${root}" != "" ]; then
-            cmd="${cmd} --root ${root}"
-        fi
 
         # Add the listing file
         cmd="${cmd} ${listing}"
@@ -95,30 +89,26 @@ runs:
 
     - name: Calculate frequency
       env:
-        root: ${{ inputs.root }}
+        root: ${{ env.root }}
         action_path: ${{ github.action_path }}
       run: |
-        cmd="python ${action_path}/scripts/calculate_frequency.py"
-        if [ "${root}" != "" ]; then
-            cmd="${cmd} --root ${root}"
-        fi
+        cmd="python ${action_path}/scripts/calculate_frequency.py --root ${root}"
         echo "${cmd}"
         $cmd
-        head ${root}/counts.json
       shell: bash
 
     - name: Preview Cache
       env:
-        root: ${{ inputs.root }}
+        root: ${{ env.root }}
       run: |
-        apt-get install -y tree
-        tree ${root}
+        sudo apt-get install -y tree || apt-get install -y tree
+        tree ${root} 
       shell: bash
 
     - name: Checkout Update branch
       if: (inputs.dry_run != 'true')
       env:
-        root: ${{ inputs.root }}
+        root: ${{ env.root }}
         GITHUB_TOKEN: ${{ inputs.token }}
         BRANCH_AGAINST: ${{ inputs.branch }}
       run: |
@@ -131,8 +121,8 @@ runs:
         git config --global pull.rebase true
         git add ${root}/* || echo "No files to add"
         git add ${root}/*/* || echo "No nested files to add"
-        git add $(root)/counts.json
-        git add $(root)/skips.json
+        git add ${root}/counts.json
+        git add ${root}/skips.json
         git status
         if git diff-index --quiet HEAD --; then
            export OPEN_PULL_REQUEST=0

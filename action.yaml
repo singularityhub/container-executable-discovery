@@ -101,8 +101,8 @@ runs:
       env:
         root: ${{ env.root }}
       run: |
-        apt-get install -y tree
-        tree ${root}
+        sudo apt-get install -y tree || apt-get install -y tree
+        tree ${root} 
       shell: bash
 
     - name: Checkout Update branch

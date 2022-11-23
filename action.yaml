@@ -34,23 +34,9 @@ inputs:
     required: false
     default: main
 
-outputs:
-  version:
-    description: "New version"
-    value: ${{ steps.check.outputs.version }}
-  package:
-    description: "Package with version (to install or test build)"
-    value: ${{ steps.check.outputs.package }}
-  digest:
-    description: "Digest of new release"
-    value: ${{ steps.check.outputs.digest }}
-
-        branch: ${{ inputs.branch }}
-
 runs:
   using: "composite"
   steps:
-
     - name: Install shpc and Guts
       env:
         action_path: ${{ github.action_path }}

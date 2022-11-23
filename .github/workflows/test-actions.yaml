@@ -66,5 +66,3 @@ jobs:
           listing: biocontainers.txt
           namespace: quay.io/biocontainers
           dry_run: true
-
-

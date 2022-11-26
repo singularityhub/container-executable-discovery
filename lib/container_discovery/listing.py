@@ -2,7 +2,7 @@ import requests
 from container_discovery.pipelines import tags_pipeline as p
 
 
-def iter_tags(containers, existing=None):
+def iter_tags(containers, existing=None, registry=None):
     """
     Given a listing of containers, diff against existing and yield new tags.
     """
@@ -14,6 +14,11 @@ def iter_tags(containers, existing=None):
         container = image
         if ":" in image:
             image, _ = image.split(":", 1)
+
+        # Look for same name in registry
+        if registry and os.path.join(registry, image):
+            print(f"{image} already exists in registry.")
+            continue
 
         if image in existing or container in existing:
             continue

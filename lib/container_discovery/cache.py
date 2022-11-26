@@ -136,21 +136,21 @@ class CacheEntry:
     def parse_image_uri(self, cache):
         """
         Given the stated pattern to store a letter, remove it.
-        """       
+        """
         # Get the path relative to root
         registry_uri = os.path.relpath(self.file, cache)
 
-        # Remove any likely prefix 
+        # Remove any likely prefix
         parts = registry_uri.split(os.sep)
         parsed = []
         for i, part in enumerate(parts):
-            if len(part) == 1 and i+1 < len(parts):
-                if parts[i+1][0] == part:
+            if len(part) == 1 and i + 1 < len(parts):
+                if parts[i + 1][0] == part:
                     continue
-            parsed.append(part)           
-        registry_uri = os.sep.join(parsed)          
-       
-        # We really only need the container uri,        
+            parsed.append(part)
+        registry_uri = os.sep.join(parsed)
+
+        # We really only need the container uri,
         image, tag = registry_uri.replace(".json", "").split(":", 1)
         self.image = image
         self.tag = tag
@@ -207,7 +207,7 @@ class CacheEntry:
 def iter_new_cache(cache, registry):
     """
     Yield new entries in the cache, loaded.
-    """    
+    """
     # This assumes counts at the root
     counts = os.path.join(cache, "counts.json")
 

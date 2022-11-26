@@ -1,0 +1,17 @@
+container_discovery.egg-info/
+bin/
+lib/
+env
+.env
+env
+build
+docs/_build
+release
+_site
+dist/
+OLD
+__pycache__
+*.simg
+*.sif
+*.img
+.eggs

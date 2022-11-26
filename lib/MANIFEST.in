@@ -1,0 +1,6 @@
+include README.md LICENSE
+recursive-include container_discovery *
+global-exclude .env
+global-exclude *.py[co]
+recursive-exclude .git *
+global-exclude __pycache__

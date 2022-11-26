@@ -1,0 +1,32 @@
+name: "Container Executable Discovery Install"
+description: "Install the container_discovery module for your own usage."
+inputs:
+  branch:
+    description: The branch of the repository to install from (if no path provided)
+    required: true
+    default: main
+  path:
+    description: If already cloned, install from here.
+    required: false
+  full_clone:
+    description: Instead of cloning with --depth 1, clone the entire git history (branch only)
+    required: false
+    default: "false"
+  clone_to:
+    description: If installing from branch, clone to here.
+    required: false
+    default: /tmp/container-executable-discovery
+   
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Container Discovery and Dependencies
+      env:
+        install_path: ${{ inputs.path }}
+        branch: ${{ inputs.branch }}
+        clone_to: ${{ inputs.clone_to }}
+        full_clone: ${{ inputs.full_clone }}
+      run: ${{ github.action_path }}/scripts/install.sh
+      shell: bash
+

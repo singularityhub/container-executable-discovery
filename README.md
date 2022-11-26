@@ -226,6 +226,21 @@ The pull request will update or create (within the cache root):
 
 Note that we filter out patterns that are likely not executables. See the [scripts](scripts) folder to see this logic!
 
+## Container Discovery Library
+
+The action is powered by a python library [container_discovery](lib) that is provided
+and installed alongside the action. Since this is primarily used here, we don't 
+publish to pypi. If you want to install it for your own use:
+
+```bash
+$ git clone https://github.com/singularityhub/container-executable-discovery
+$ cd container-executable-discovery/lib
+$ pip install .
+```
+
+And then interact with the `container_discovery` module. You can look at 
+examples under [scripts](scripts) - this is how the action runs!
+
 ## Contribution
 
 This registry showcases a container executable cache, and specifically includes over 8K containers

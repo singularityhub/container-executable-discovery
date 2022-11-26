@@ -1,5 +1,5 @@
-import pipelib.steps as step
 import pipelib.pipeline as pipeline
+import pipelib.steps as step
 
 # A pipeline to process docker tags
 steps = (

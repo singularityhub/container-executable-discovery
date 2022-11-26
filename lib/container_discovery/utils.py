@@ -1,6 +1,6 @@
-import os
-import json
 import errno
+import json
+import os
 import re
 import sys
 

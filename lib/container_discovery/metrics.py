@@ -1,6 +1,7 @@
-import container_discovery.utils as utils
 import collections
 import os
+
+import container_discovery.utils as utils
 
 
 def get_total_counts(root):

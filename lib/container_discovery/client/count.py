@@ -1,7 +1,8 @@
-import container_discovery.utils as utils
-import container_discovery.metrics as metrics
 import os
 import sys
+
+import container_discovery.metrics as metrics
+import container_discovery.utils as utils
 
 
 def main(args, parser, extra, subparser):

@@ -1,14 +1,14 @@
-import container_discovery.utils as utils
-from container_discovery.pipelines import tags_pipeline as p
-import container_discovery.filters as filters
-
-from container_guts.main import ManifestGenerator
-
-import os
-import sys
-import shutil
-import requests
 import glob
+import os
+import re
+import shutil
+import sys
+
+import container_discovery.filters as filters
+import container_discovery.utils as utils
+import requests
+from container_discovery.pipelines import tags_pipeline as p
+from container_guts.main import ManifestGenerator
 
 
 def get_cache_entry(image, args, tag):
@@ -120,6 +120,126 @@ class Options:
 
     def add_option(self, key, value):
         setattr(self, key, value)
+
+
+class CacheEntry:
+    """
+    A loaded cache entry that can be used to parse aliases.
+    """
+
+    def __init__(self, cache_file, cache, counts):
+        self.aliases = utils.read_json(cache_file)
+        self.file = cache_file
+        self.parse_image_uri(cache)
+        self.counts = counts
+
+    def parse_image_uri(self, cache):
+        """
+        Given the stated pattern to store a letter, remove it.
+        """
+        # Get the path relative to root
+        registry_uri = os.path.relpath(self.file, cache)
+
+        # Remove any likely prefix
+        parts = registry_uri.split(os.sep)
+        parsed = []
+        for i, part in enumerate(parts):
+            if len(part) == 1 and i + 1 < len(parts):
+                if parts[i + 1][0] == part:
+                    continue
+            parsed.append(part)
+        registry_uri = os.sep.join(parsed)
+
+        # We really only need the container uri,
+        image, tag = registry_uri.replace(".json", "").split(":", 1)
+        self.image = image
+        self.tag = tag
+
+    @property
+    def image_name(self):
+        """
+        The image name is just the image (without registry)
+        """
+        return os.path.basename(self.image)
+
+    def filter_aliases(self, add_count=25, min_count=10, max_count=1000):
+        """
+        Filter down aliases to sorted set of "keepers"
+        """
+        # Derive this once
+        image_name = self.image_name
+
+        # Look up counts and always take the number under a threshold (10)
+        keepers = {}
+        for x, path in self.aliases.items():
+
+            if not filters.include_path(path):
+                continue
+
+            # Always use a regular expression of the image name to include
+            if re.search(image_name.lower(), path.lower()):
+                keepers[x] = path
+
+            # Always take the very unique ones!
+            elif self.counts[x] <= min_count and filters.include_path(path):
+                keepers[x] = path
+
+        # of the remaining we have, sorted by count, keep top N (lower numbers == more unique)
+        alias_counts = {x: self.counts[x] for x in self.aliases if x not in keepers}
+
+        # Sort lowest to highest
+        sorted_counts = {}
+        sorted_keys = sorted(alias_counts, key=alias_counts.get)
+        for x in sorted_keys:
+            sorted_counts[x] = alias_counts[x]
+
+        # Turn into tuples
+        sorted_counts = list(sorted_counts.items())
+
+        while add_count > 0 and sorted_counts:
+            keeper, keeper_count = sorted_counts.pop(0)
+            if filters.include_path(keeper) and keeper_count < max_count:
+                keepers[keeper] = self.aliases[keeper]
+                add_count -= 1
+        return keepers
+
+
+def iter_new_cache(cache, registry):
+    """
+    Yield new entries in the cache, loaded.
+    """
+    # This assumes counts at the root
+    counts = os.path.join(cache, "counts.json")
+
+    # If we don't have cache or counts, no go
+    for path in cache, counts:
+        if not os.path.exists(path):
+            sys.exit(f"{path} does not exist.")
+
+    # Read in counts
+    counts = utils.read_json(counts)
+
+    # Keep track of those we've seen in the cache
+    seen = set()
+
+    # For each entry in the cache (which might not be in our registry) check for it!
+    for cache_file in utils.recursive_find(cache, ".json"):
+        basename = os.path.basename(cache_file)
+        if basename in ["skips.json", "counts.json"]:
+            continue
+
+        # TODO need to add variable here to ensure we get the right image
+        # Prepare a cache entry (global counts help later)
+        entry = CacheEntry(cache_file, cache, counts)
+        seen.add(entry.image)
+
+        # Look for same name in registry
+        container_dir = os.path.join(registry, entry.image)
+        if os.path.exists(container_dir):
+            continue
+
+        print(f"Image {entry.image} found in cache and not in registry!")
+        yield entry
 
 
 def update(

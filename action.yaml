@@ -37,14 +37,15 @@ inputs:
 runs:
   using: "composite"
   steps:
+
+      # We use defaults but provide the repository already cloned
     - name: Install shpc and Guts
       env:
-        action_path: ${{ github.action_path }}
-      run: |
-        pip install git+https://github.com/singularityhub/singularity-hpc@main
-        pip install git+https://github.com/vsoch/pipelib@main
-        pip install git+https://github.com/singularityhub/guts@main
-        pip install -r ${action_path}/scripts/dev-requirements.txt
+        install_path: ${{ github.action_path }}/lib
+        branch: main
+        clone_to: /tmp/container-executable-discovery
+        full_clone: "false"
+      run: ${{ github.action_path }}/install/scripts/install.sh
       shell: bash
 
     - name: Set root
@@ -68,8 +69,7 @@ runs:
         root: ${{ env.root }}
         action_path: ${{ github.action_path }}
       run: |
-        cmd="python ${action_path}/scripts/update_containers.py --root ${root}" 
-
+        cmd="container-discovery update-cache --root ${root}"
         if [ "${repo_prefix}" == "true" ]; then
             cmd="${cmd} --repo-letter-prefix"
         elif [ "${org_prefix}" == "true" ]; then
@@ -90,9 +90,8 @@ runs:
     - name: Calculate frequency
       env:
         root: ${{ env.root }}
-        action_path: ${{ github.action_path }}
       run: |
-        cmd="python ${action_path}/scripts/calculate_frequency.py --root ${root}"
+        cmd="container-discovery update-counts --root ${root}"
         echo "${cmd}"
         $cmd
       shell: bash
@@ -102,7 +101,7 @@ runs:
         root: ${{ env.root }}
       run: |
         sudo apt-get install -y tree || apt-get install -y tree
-        tree ${root} 
+        tree ${root} | head --lines 100
       shell: bash
 
     - name: Checkout Update branch

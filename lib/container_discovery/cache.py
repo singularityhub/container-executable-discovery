@@ -236,7 +236,6 @@ def iter_new_cache(cache, registry):
         # Look for same name in registry
         container_dir = os.path.join(registry, entry.image)
         if os.path.exists(container_dir):
-            print(f"{container_dir} already exists.")
             continue
 
         print(f"Image {entry.image} found in cache and not in registry!")

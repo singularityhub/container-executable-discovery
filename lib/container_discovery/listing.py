@@ -1,3 +1,5 @@
+import os
+
 import requests
 from container_discovery.pipelines import tags_pipeline as p
 
@@ -17,7 +19,6 @@ def iter_tags(containers, existing=None, registry=None):
 
         # Look for same name in registry
         if registry and os.path.join(registry, image):
-            print(f"{image} already exists in registry.")
             continue
 
         if image in existing or container in existing:

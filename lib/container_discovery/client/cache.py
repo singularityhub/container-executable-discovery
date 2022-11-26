@@ -28,7 +28,6 @@ def main(args, parser, extra, subparser):
     uris, skips = cache.update(
         containers,
         root=args.root,
-        namespace=args.namespace,
         org_prefix=args.org_letter_prefix,
         registry_letter_prefix=args.registry_letter_prefix,
         repo_prefix=args.repo_letter_prefix,

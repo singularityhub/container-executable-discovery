@@ -130,15 +130,30 @@ class CacheEntry:
     def __init__(self, cache_file, cache, counts):
         self.aliases = utils.read_json(cache_file)
         self.file = cache_file
+        self.parse_image_uri(cache)
+        self.counts = counts
 
+    def parse_image_uri(self, cache):
+        """
+        Given the stated pattern to store a letter, remove it.
+        """       
         # Get the path relative to root
-        registry_uri = os.path.relpath(cache_file, cache)
+        registry_uri = os.path.relpath(self.file, cache)
 
-        # We really only need the container uri,
+        # Remove any likely prefix 
+        parts = registry_uri.split(os.sep)
+        parsed = []
+        for i, part in enumerate(parts):
+            if len(part) == 1 and i+1 < len(parts):
+                if parts[i+1][0] == part:
+                    continue
+            parsed.append(part)           
+        registry_uri = os.sep.join(parsed)          
+       
+        # We really only need the container uri,        
         image, tag = registry_uri.replace(".json", "").split(":", 1)
         self.image = image
         self.tag = tag
-        self.counts = counts
 
     @property
     def image_name(self):
@@ -192,7 +207,7 @@ class CacheEntry:
 def iter_new_cache(cache, registry):
     """
     Yield new entries in the cache, loaded.
-    """
+    """    
     # This assumes counts at the root
     counts = os.path.join(cache, "counts.json")
 
@@ -213,6 +228,7 @@ def iter_new_cache(cache, registry):
         if basename in ["skips.json", "counts.json"]:
             continue
 
+        # TODO need to add variable here to ensure we get the right image
         # Prepare a cache entry (global counts help later)
         entry = CacheEntry(cache_file, cache, counts)
         seen.add(entry.image)

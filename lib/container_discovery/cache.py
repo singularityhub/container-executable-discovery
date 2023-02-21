@@ -181,7 +181,7 @@ class CacheEntry:
                 keepers[x] = path
 
             # Always take the very unique ones!
-            elif self.counts[x] <= min_count and filters.include_path(path):
+            elif (self.counts.get(x) or 0) <= min_count and filters.include_path(path):
                 keepers[x] = path
 
         # of the remaining we have, sorted by count, keep top N (lower numbers == more unique)

@@ -58,6 +58,12 @@ runs:
         echo "root=${root}" >> $GITHUB_ENV
       shell: bash
 
+    - name: Make Space For Build
+      run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+
     - name: Update Cache
       id: update
       env:

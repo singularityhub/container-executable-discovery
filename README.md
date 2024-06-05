@@ -1,7 +1,7 @@
 # Container Executable Discovery
 
 This is a GitHub action that discovers 🗺️ container executables! It is used by
-the [shpc-registry-cache](https://github.com/singularity/shpc-registry-cache). 
+the [shpc-registry-cache](https://github.com/singularityhub/shpc-registry-cache). 
 
 
 ## What does it do?
